@@ -1,16 +1,3 @@
-"""
-features.py
------------
-Feature extraction for CRF-based POS tagging.
-
-Four nested feature sets of increasing richness:
-  FS1 - word form + case flags          (baseline)
-  FS2 - FS1 + suffixes/prefixes
-  FS3 - FS2 + ±2 context window
-  FS4 - FS3 + word shape + hyphen/digit flags  (full)
-"""
-
-
 def word_shape(word):
     """Collapse a word to its abstract shape: A→X, a→x, 0→9, else keep."""
     shape = []
@@ -23,13 +10,11 @@ def word_shape(word):
             shape.append('9')
         else:
             shape.append(ch)
-    # Compress runs: "Xxxxx" → "Xx", "999" → "9"
     compressed = []
     for ch in shape:
         if not compressed or compressed[-1] != ch:
             compressed.append(ch)
     return ''.join(compressed)
-
 
 def base_features(word):
     """FS1: word form and simple case flags."""
@@ -41,14 +26,13 @@ def base_features(word):
         'word.isdigit':  word.isdigit(),
     }
 
-
 def affix_features(word):
     """FS2 additions: character n-gram suffixes and prefixes."""
     lw = word.lower()
     feats = {}
-    for n in range(1, 5):           # suffixes 1–4
+    for n in range(1, 5):
         feats[f'word.suffix{n}'] = lw[-n:] if len(lw) >= n else lw
-    for n in range(1, 4):           # prefixes 1–3
+    for n in range(1, 4):
         feats[f'word.prefix{n}'] = lw[:n]  if len(lw) >= n else lw
     return feats
 
@@ -63,12 +47,7 @@ def shape_features(word):
 
 
 def token_features(sent, i, feature_set='FS4'):
-    """
-    Return a feature dict for token i in sentence `sent`
-    (a list of (word, tag) tuples or just words).
-
-    feature_set : 'FS1' | 'FS2' | 'FS3' | 'FS4'
-    """
+    """Return a feature dict for token i in sentence `sent`"""
     word = sent[i][0] if isinstance(sent[i], tuple) else sent[i]
 
     feats = base_features(word)
@@ -79,13 +58,11 @@ def token_features(sent, i, feature_set='FS4'):
     if feature_set in ('FS4',):
         feats.update(shape_features(word))
 
-    # BOS / EOS markers
     if i == 0:
         feats['BOS'] = True
     if i == len(sent) - 1:
         feats['EOS'] = True
 
-    # FS3 / FS4: ±2 context window
     if feature_set in ('FS3', 'FS4'):
         for offset, prefix in [(-2, 'm2'), (-1, 'm1'), (1, 'p1'), (2, 'p2')]:
             j = i + offset
@@ -99,7 +76,7 @@ def token_features(sent, i, feature_set='FS4'):
                     feats[f'{prefix}:word.suffix2'] = lw[-2:] if len(lw) >= 2 else lw
                     feats[f'{prefix}:word.suffix3'] = lw[-3:] if len(lw) >= 3 else lw
             else:
-                feats[f'{prefix}:OOB'] = True   # out-of-bounds
+                feats[f'{prefix}:OOB'] = True
 
     return feats
 
