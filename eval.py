@@ -1,10 +1,4 @@
 """
-eval.py
--------
-Evaluation utilities for the CRF POS tagger.
-
-Functions
----------
 token_accuracy        : overall / in-vocab / OOV accuracy
 per_tag_report        : precision, recall, F1 per tag
 plot_learning_curve   : accuracy vs training fraction
@@ -23,7 +17,6 @@ import matplotlib.ticker as mticker
 import seaborn as sns
 from sklearn.metrics import classification_report, confusion_matrix
 
-# ── Style ──────────────────────────────────────────────────────────────────
 BLUE   = '#2E75B6'
 LIGHT  = '#BDD7EE'
 ORANGE = '#C55A11'
@@ -38,11 +31,8 @@ def save_fig(name, dpi=150):
     path = os.path.join(OUTPUT_DIR, name)
     plt.savefig(path, dpi=dpi, bbox_inches='tight')
     plt.close()
-    print(f'  → saved {path}')
+    print(f'saved {path}')
     return path
-
-
-# ── Core metrics ───────────────────────────────────────────────────────────
 
 def flatten(y_lists):
     return [t for seq in y_lists for t in seq]
@@ -52,15 +42,13 @@ def token_accuracy(y_true_seqs, y_pred_seqs, sents=None, train_vocab=None):
     """
     Compute overall accuracy plus in-vocab / OOV split.
 
-    Parameters
-    ----------
+    @params
     y_true_seqs, y_pred_seqs : list of list of str
-    sents       : list of tagged sentences (used for OOV split)
+    sents : list of tagged sentences (used for OOV split)
     train_vocab : set of words seen during training
 
-    Returns
-    -------
-    dict with keys: overall, in_vocab, oov
+    @return
+    dict with keys [overall, in_vocab, oov]
     """
     y_true = flatten(y_true_seqs)
     y_pred = flatten(y_pred_seqs)
@@ -83,15 +71,12 @@ def token_accuracy(y_true_seqs, y_pred_seqs, sents=None, train_vocab=None):
 
 
 def per_tag_report(y_true_seqs, y_pred_seqs, output_dict=False):
-    """Thin wrapper around sklearn classification_report."""
     y_true = flatten(y_true_seqs)
     y_pred = flatten(y_pred_seqs)
-    return classification_report(y_true, y_pred,
-                                 output_dict=output_dict,
-                                 zero_division=0)
+    return classification_report(y_true, y_pred, output_dict=output_dict, zero_division=0)
 
 
-# ── Plots ──────────────────────────────────────────────────────────────────
+# Plotting
 
 def plot_learning_curve(fractions, overall_accs, oov_accs, n_train_counts):
     """Line plot of accuracy vs training set fraction."""
@@ -118,8 +103,7 @@ def plot_learning_curve(fractions, overall_accs, oov_accs, n_train_counts):
 def plot_regularisation(c2_values, dev_accs):
     """Line plot of dev accuracy vs c2."""
     fig, ax = plt.subplots(figsize=(6.5, 4))
-    ax.plot(range(len(c2_values)), [a * 100 for a in dev_accs],
-            'o-', color=BLUE, lw=2, ms=7)
+    ax.plot(range(len(c2_values)), [a * 100 for a in dev_accs], 'o-', color=BLUE, lw=2, ms=7)
     ax.set_xticks(range(len(c2_values)))
     ax.set_xticklabels([str(c) for c in c2_values], fontsize=9)
     ax.set_xlabel('L2 regularisation coefficient (c2)', fontsize=11)
@@ -141,9 +125,8 @@ def plot_regularisation(c2_values, dev_accs):
 def plot_feature_ablation(feature_sets, accuracies):
     """Horizontal bar chart of feature-set accuracies."""
     fig, ax = plt.subplots(figsize=(6.5, 3.5))
-    colors = [LIGHT, LIGHT, LIGHT, BLUE]   # highlight full model
-    bars = ax.barh(feature_sets, [a * 100 for a in accuracies],
-                   color=colors, edgecolor='white', height=0.55)
+    colors = [LIGHT, LIGHT, LIGHT, BLUE] # highlight full model
+    bars = ax.barh(feature_sets, [a * 100 for a in accuracies], color=colors, edgecolor='white', height=0.55)
     for bar, acc in zip(bars, accuracies):
         ax.text(bar.get_width() + 0.1, bar.get_y() + bar.get_height() / 2,
                 f'{acc*100:.1f}%', va='center', fontsize=10)
@@ -157,16 +140,14 @@ def plot_feature_ablation(feature_sets, accuracies):
 
 def plot_confusion(y_true_seqs, y_pred_seqs, n_worst=12):
     """
-    Confusion matrix restricted to the N tags with lowest recall,
-    so the plot stays readable.
+    Confusion matrix restricted to the N tags with lowest recall, so the plot stays readable.
     """
     y_true = flatten(y_true_seqs)
     y_pred = flatten(y_pred_seqs)
 
     report = classification_report(y_true, y_pred, output_dict=True, zero_division=0)
     # pick N tags with lowest recall (excluding micro/macro avg keys)
-    tag_recalls = {k: v['recall'] for k, v in report.items()
-                   if isinstance(v, dict) and 'recall' in v}
+    tag_recalls = {k: v['recall'] for k, v in report.items() if isinstance(v, dict) and 'recall' in v}
     worst_tags = sorted(tag_recalls, key=tag_recalls.get)[:n_worst]
 
     cm = confusion_matrix(y_true, y_pred, labels=worst_tags, normalize='true')
